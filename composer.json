@@ -1,0 +1,20 @@
+{
+    "name": "refaltor/efficiency-sql",
+    "type": "library",
+    "description": "Efficiency SQL allows managing a fully asynchronous database without callbacks.",
+    "autoload": {
+        "psr-4": {
+            "refaltor\\efficiencySql\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Refaltor",
+            "email": "refaltor@shulkerstudio.com"
+        }
+    ],
+    "require": {
+        "illuminate/database": "^11.34",
+        "sof3/await-generator": "^3.6"
+    }
+}
