@@ -28,6 +28,10 @@ use stdClass;
 
 class EfficiencySQL
 {
+    const MODE_FRESH = "fresh";
+    const MODE_PROD = "prod";
+
+    private static string $mode = self::MODE_FRESH;
     private static array $connection = [];
     private static string $migrationsPath = __DIR__ . '/migrations';
 
@@ -41,15 +45,17 @@ class EfficiencySQL
         string $username,
         string $password,
         string $database,
-        string $pathMigrationsDIr
+        string $pathMigrationsDIr,
+        string $databaseMode = self::MODE_FRESH
     ): void {
         self::setMigrationsPath($pathMigrationsDIr);
-        self::$connection[$hostname] = [
+        self::$connection = [
             'username' => $username,
             'password' => $password,
             'database' => $database,
             'hostname' => $hostname,
         ];
+        self::$mode = $databaseMode;
         self::init();
     }
 
@@ -111,6 +117,13 @@ class EfficiencySQL
         ]);
 
         $capsule->setAsGlobal();
+        if (self::$mode === self::MODE_FRESH) {
+            self::fresh();
+            self::migrate();
+            self::chargeCaches();
+        } else {
+            self::chargeCaches();
+        }
     }
 
     public static function chargeCaches(): void {}
