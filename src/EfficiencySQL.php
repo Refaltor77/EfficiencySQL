@@ -29,20 +29,28 @@ use stdClass;
 class EfficiencySQL
 {
     private static array $connection = [];
+    private static string $migrationsPath = __DIR__ . '/migrations';
+
+    public static function setMigrationsPath(string $path): void
+    {
+        self::$migrationsPath = rtrim($path, '/');
+    }
 
     public static function createConnection(
         string $hostname,
         string $username,
         string $password,
         string $database,
-    ): void
-    {
+        string $pathMigrationsDIr
+    ): void {
+        self::setMigrationsPath($pathMigrationsDIr);
         self::$connection[$hostname] = [
             'username' => $username,
             'password' => $password,
             'database' => $database,
             'hostname' => $hostname,
         ];
+        self::init();
     }
 
     public static function sql(): object
@@ -72,14 +80,12 @@ class EfficiencySQL
 
     public static function migrate(): void
     {
-        $migrationsPath = __DIR__.'/migrations';
-
-        foreach (glob($migrationsPath.'/*.php') as $file) {
+        foreach (glob(self::$migrationsPath . '/*.php') as $file) {
             $content = file_get_contents($file);
             if (preg_match('/namespace\s+(.+?);/', $content, $matches)) {
                 $namespace = $matches[1];
                 $fileName = basename($file, '.php');
-                $class = $namespace.'\\'.$fileName;
+                $class = $namespace . '\\' . $fileName;
                 $object = new $class;
                 $object->up();
                 $object->hydrate();
@@ -91,16 +97,19 @@ class EfficiencySQL
     public static function init(): void
     {
         $capsule = new Capsule;
+
+        $connection = self::$connection;
         $capsule->addConnection([
             'driver' => 'mysql',
-            'host' => env('PM_DB_HOST'),
-            'database' => env('PM_DB_NAME'),
-            'username' => env('PM_DB_USER'),
-            'password' => env('PM_DB_PASSWORD'),
+            'host' => $connection['hostname'],
+            'database' => $connection['database'],
+            'username' => $connection['username'],
+            'password' => $connection['password'],
             'charset' => 'utf8',
             'collation' => 'utf8_unicode_ci',
             'prefix' => '',
         ]);
+
         $capsule->setAsGlobal();
     }
 
@@ -108,15 +117,13 @@ class EfficiencySQL
 
     public static function fresh(): void
     {
-        $migrationsPath = __DIR__.'/migrations';
-
-        $files = array_reverse(glob($migrationsPath.'/*.php'));
+        $files = array_reverse(glob(self::$migrationsPath . '/*.php'));
         foreach ($files as $file) {
             $content = file_get_contents($file);
             if (preg_match('/namespace\s+(.+?);/', $content, $matches)) {
                 $namespace = $matches[1];
                 $fileName = basename($file, '.php');
-                $class = $namespace.'\\'.$fileName;
+                $class = $namespace . '\\' . $fileName;
                 $object = new $class;
                 $object->down();
                 Server::getInstance()->getLogger()->info("§c[MIGRATION] §fRunning down migration `$fileName`");
