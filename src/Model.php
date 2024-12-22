@@ -231,8 +231,10 @@ class Model
     /**
      * Récupère tous les enregistrements de la table et retourne un tableau de modèles.
      *
-     * @param  callable  $callback  Fonction callback appelée avec un tableau de modèles
-     * @return void
+     * @param string|null $orderBy La colonne à utiliser pour ordonner les résultats
+     * @param string|null $orderType Le type d'ordonnancement de la requête (ASC ou DESC)
+     * @param int|null $limit Le nombre d'enregistrements à récupérer
+     * @return Generator
      *
      * Exemple d'utilisation :
      *
@@ -244,13 +246,18 @@ class Model
      * });
      * ```
      */
-    public static function all(): Generator
+    public static function all(?string $orderBy = null,?string $orderType = null,?int $limit = null): Generator
     {
         $tableName = static::tableName();
 
-        return yield from Await::promise(function ($resolve) use ($tableName) {
-            EfficiencySQL::async(function (AsyncTask $task, mysqli $db) use ($tableName) {
-                $result = $db->query('SELECT * FROM '.$tableName);
+        return yield from Await::promise(function ($resolve) use ($tableName,$orderBy,$orderType,$limit) {
+            EfficiencySQL::async(function (AsyncTask $task, mysqli $db) use ($tableName,$orderBy,$orderType,$limit) {
+
+                $query = 'SELECT * FROM '.$tableName;
+                $query .= $orderBy ? " ORDER BY $orderBy $orderType" : "";
+                $query .= $limit ? " LIMIT $limit" : "";
+
+                $result = $db->query($query);
                 $rows = [];
                 while ($row = $result->fetch_assoc()) {
                     $rows[] = $row;
@@ -373,10 +380,10 @@ class Model
      * Récupère les enregistrements de la table qui correspondent aux conditions spécifiées.
      *
      * @param array $conditions Un tableau associatif représentant les colonnes et les valeurs à filtrer
-     * @parem int|null $limit Un limit pour la requête
-     * @parem int|null $offset Un offset pour la requête
-     * @parem string|null $orderBy Une colone qui va être utilisé pour ordonner pour la requête
-     * @parem string|null $orderType Le type d'ordonnancement de la requête (ASC ou DESC)
+     * @param int|null $limit Le nombre d'enregistrements à récupérer
+     * @param int|null $offset L'offset à partir duquel commencer la récupération
+     * @param string|null $orderBy La colonne à utiliser pour ordonner les résultats
+     * @param string|null $orderType Le type d'ordonnancement de la requête (ASC ou DESC)
      * @return Generator Exemple d'utilisation :
      *
      * Exemple d'utilisation :
