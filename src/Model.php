@@ -373,6 +373,10 @@ class Model
      * Récupère les enregistrements de la table qui correspondent aux conditions spécifiées.
      *
      * @param array $conditions Un tableau associatif représentant les colonnes et les valeurs à filtrer
+     * @parem int|null $limit Un limit pour la requête
+     * @parem int|null $offset Un offset pour la requête
+     * @parem string|null $orderBy Une colone qui va être utilisé pour ordonner pour la requête
+     * @parem string|null $orderType Le type d'ordonnancement de la requête (ASC ou DESC)
      * @return Generator Exemple d'utilisation :
      *
      * Exemple d'utilisation :
@@ -385,11 +389,11 @@ class Model
      * });
      * ```
      */
-    public static function where(array $conditions): Generator
+    public static function where(array $conditions,?int $limit = null, ?int $offset = null,?string $orderBy = null,?string $orderType = "ASC"): Generator
     {
         $tableName = static::tableName();
 
-        return yield from Await::promise(function ($resolve) use ($tableName, $conditions) {
+        return yield from Await::promise(function ($resolve) use ($tableName, $conditions,$limit,$offset,$orderBy,$orderType) {
             $query = 'SELECT * FROM '.$tableName.' WHERE ';
             $queryParts = [];
             $types = '';
@@ -409,6 +413,11 @@ class Model
             }
 
             $query .= implode(' AND ', $queryParts);
+
+            $query .= $orderBy ? " ORDER BY $orderBy $orderType" : "";
+            $query .= $limit ? " LIMIT $limit" : "";
+            $query .= $offset ? " OFFSET $offset" : "";
+
 
             EfficiencySQL::async(function (AsyncTask $task, mysqli $db) use ($query, $types, $values) {
                 $stmt = $db->prepare($query);
